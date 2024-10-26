@@ -1,25 +1,28 @@
 from rest_framework import serializers
-from .models import User
+from django.contrib.auth.models import User
 from django.core.validators import RegexValidator
 from django.contrib.auth.password_validation import validate_password
+from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'username', 'email')
+        fields = ('id','name', 'username', 'email')
 
 class RegisterSerializer(serializers.ModelSerializer):
-    name = serializers.CharField(required=True, max_length=100)
-    email = serializers.EmailField(required=True, validators=[RegexValidator(
-        regex=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
-        message="Enter a valid email address."
-    )])
+    email = serializers.EmailField(
+        required=True,
+        validators=[RegexValidator(
+            regex=r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$',
+            message="Enter a valid email address."
+        )]
+    )
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     confirm_password = serializers.CharField(write_only=True, required=True)
 
     class Meta:
         model = User
-        fields = ('name', 'username', 'email', 'password', 'confirm_password')
+        fields = ('name','username', 'email', 'password', 'confirm_password')
 
     def validate_username(self, value):
         if User.objects.filter(username=value).exists():
@@ -37,14 +40,12 @@ class RegisterSerializer(serializers.ModelSerializer):
         return data
 
     def create(self, validated_data):
-        validated_data.pop('confirm_password')
+        validated_data.pop('confirm_password')  # Remove confirm_password since it's not needed in User creation
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password']
         )
-        user.name = validated_data['name']
-        user.save()
         return user
 
 class LoginSerializer(serializers.Serializer):
